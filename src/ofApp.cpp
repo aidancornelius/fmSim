@@ -27,7 +27,13 @@ void ofApp::setup() {
     gui.add(fluidDeltaT);
     gui.add(colorDiffusion);
     gui.add(forceMult);
-    gui.add(drawMode);
+    gui.add(inputSize);
+    gui.add(showVectors);
+    gui.add(showMotion);
+    gui.add(showColor);
+    gui.add(showSpeed);
+    gui.add(drawOpacity);
+    gui.add(disableSystemGestures);
     gui.add(showGui);
 
     // Setup parameter listeners
@@ -35,14 +41,14 @@ void ofApp::setup() {
     fluidFadeSpeed.addListener(this, &ofApp::onFadeSpeedChanged);
     fluidDeltaT.addListener(this, &ofApp::onDeltaTChanged);
     colorDiffusion.addListener(this, &ofApp::onColorDiffusionChanged);
+    disableSystemGestures.addListener(this, &ofApp::onGesturesChanged);
 
     // Enable multitouch
     ofxMultitouch::EnableTouch();
-}
 
-//--------------------------------------------------------------
-void ofApp::exit() {
-    ofxMultitouch::DisableTouch();
+    // Initial gesture control
+    bool initialValue = disableSystemGestures.get();
+    onGesturesChanged(initialValue);
 }
 
 //--------------------------------------------------------------
@@ -79,16 +85,15 @@ void ofApp::update() {
 void ofApp::draw() {
     ofBackground(0);
 
-    // Draw fluid
-    fluidDrawer.setDrawMode((msa::fluid::DrawMode)((int)drawMode));
-    fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
+    // Draw combined fluid modes
+    drawCombinedModes();
 
     // Draw touch points
     ofSetColor(255);
     for(const auto& tp : touchPoints) {
         if(tp.second.isActive) {
             ofSetColor(tp.second.color);
-            ofDrawCircle(tp.second.pos.x, tp.second.pos.y, particleSize);
+            ofDrawCircle(tp.second.pos.x, tp.second.pos.y, particleSize * inputSize);
         }
     }
 
@@ -96,6 +101,45 @@ void ofApp::draw() {
     if(showGui) {
         gui.draw();
     }
+}
+
+//--------------------------------------------------------------
+void ofApp::drawCombinedModes() {
+    ofEnableAlphaBlending();
+
+    if(showColor) {
+        ofSetColor(255, 255 * drawOpacity);
+        fluidDrawer.setDrawMode(msa::fluid::kDrawColor);
+        fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
+    }
+
+    if(showMotion) {
+        ofSetColor(255, 255 * drawOpacity);
+        fluidDrawer.setDrawMode(msa::fluid::kDrawMotion);
+        fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
+    }
+
+    if(showSpeed) {
+        ofSetColor(255, 255 * drawOpacity);
+        fluidDrawer.setDrawMode(msa::fluid::kDrawSpeed);
+        fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
+    }
+
+    if(showVectors) {
+        ofSetColor(255, 255 * drawOpacity);
+        fluidDrawer.setDrawMode(msa::fluid::kDrawVectors);
+        fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
+    }
+
+    ofDisableAlphaBlending();
+}
+
+//--------------------------------------------------------------
+void ofApp::exit() {
+    // Re-enable system gestures
+    bool enable = false;
+    onGesturesChanged(enable);
+    ofxMultitouch::DisableTouch();
 }
 
 //--------------------------------------------------------------
@@ -148,11 +192,33 @@ void ofApp::mouseReleased(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key) {
-    if(key == 'g' || key == 'G') {
-        showGui = !showGui;
-    }
-    if(key == 'd' || key == 'D') {
-        drawMode = (drawMode + 1) % 4;
+    switch(key) {
+        case 'g':
+        case 'G':
+            showGui = !showGui;
+            break;
+        case 'v':
+        case 'V':
+            showVectors = !showVectors;
+            break;
+        case 'm':
+        case 'M':
+            showMotion = !showMotion;
+            break;
+        case 'c':
+        case 'C':
+            showColor = !showColor;
+            break;
+        case 's':
+        case 'S':
+            showSpeed = !showSpeed;
+            break;
+        case '[':
+            inputSize = max(inputSize.get() - 0.1f, 0.1f);
+            break;
+        case ']':
+            inputSize = min(inputSize.get() + 0.1f, 5.0f);
+            break;
     }
 }
 
@@ -161,14 +227,42 @@ void ofApp::addToFluid(ofVec2f pos, ofVec2f vel, const ofFloatColor& color, bool
     // Convert window coordinates to fluid coordinates
     ofVec2f fluidPos = windowToFluid(pos);
 
-    // Add color
-    fluidSolver.addColorAtPos(msa::Vec2f(fluidPos.x, fluidPos.y), color);
+    // Scale the input size
+    float scaledSize = inputSize * 0.5f; // Base multiplier for force area
 
-    if(addForce) {
-        // Scale velocity to fluid space
-        ofVec2f fluidVel = vel * fluidSolver.getInvWidth() * forceMult;
-        fluidSolver.addForceAtPos(msa::Vec2f(fluidPos.x, fluidPos.y),
-                                 msa::Vec2f(fluidVel.x, fluidVel.y));
+    // Add color with scaled size
+    for(float x = -scaledSize; x <= scaledSize; x += 0.25) {
+        for(float y = -scaledSize; y <= scaledSize; y += 0.25) {
+            ofVec2f offset(x/FLUID_WIDTH, y/FLUID_WIDTH);
+            ofVec2f pos = fluidPos + offset;
+
+            // Ensure we're within bounds
+            if(pos.x >= 0 && pos.x <= 1 && pos.y >= 0 && pos.y <= 1) {
+                fluidSolver.addColorAtPos(msa::Vec2f(pos.x, pos.y), color);
+
+                if(addForce) {
+                    // Scale force based on distance from center
+                    float dist = sqrt(x*x + y*y);
+                    float forceFactor = ofMap(dist, 0, scaledSize, 1, 0, true);
+                    ofVec2f scaledVel = vel * forceFactor;
+
+                    fluidSolver.addForceAtPos(msa::Vec2f(pos.x, pos.y),
+                                            msa::Vec2f(scaledVel.x * fluidSolver.getInvWidth() * forceMult,
+                                                      scaledVel.y * fluidSolver.getInvWidth() * forceMult));
+                }
+            }
+        }
+    }
+}
+
+//--------------------------------------------------------------
+void ofApp::onGesturesChanged(bool& value) {
+    if(value) {
+        system("gsettings set org.gnome.desktop.interface enable-gestures false");
+        system("gsettings set org.gnome.shell.overrides edge-tiling false");
+    } else {
+        system("gsettings set org.gnome.desktop.interface enable-gestures true");
+        system("gsettings set org.gnome.shell.overrides edge-tiling true");
     }
 }
 

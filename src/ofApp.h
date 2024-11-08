@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "ofMain.h"
@@ -60,8 +61,20 @@ private:
     ofParameter<bool> showGui{"Show GUI", true};
     ofParameter<int> drawMode{"Draw Mode", 0, 0, 3};
 
+    // New parameters
+    ofParameter<float> inputSize{"Input Size", 1.0f, 0.1f, 5.0f};
+    ofParameter<bool> showVectors{"Show Vectors", false};
+    ofParameter<bool> showMotion{"Show Motion", false};
+    ofParameter<bool> showColor{"Show Color", true};
+    ofParameter<bool> showSpeed{"Show Speed", false};
+    ofParameter<float> drawOpacity{"Layer Opacity", 0.7f, 0.1f, 1.0f};
+    ofParameter<bool> disableSystemGestures{"Disable Gestures", true};
+
     void onViscosityChanged(float& value) { fluidSolver.setVisc(value); }
     void onFadeSpeedChanged(float& value) { fluidSolver.setFadeSpeed(value); }
     void onDeltaTChanged(float& value) { fluidSolver.setDeltaT(value); }
     void onColorDiffusionChanged(float& value) { fluidSolver.setColorDiffusion(value); }
+    void onGesturesChanged(bool& value);
+    void updateDrawMode();
+    void drawCombinedModes();
 };
