@@ -455,7 +455,19 @@ obj/linux64/Release/src/main.o: src/main.cpp \
   ../../../addons/ofxMSACore/src/MSACoreMath.h \
   ../../../addons/ofxMSACore/src/MSACoreGL.h \
   ../../../addons/ofxMSAFluid/src/MSAFluidDrawerGl-OF.h \
-  ../../../addons/ofxMSAFluid/src/MSAFluidDrawerBase.h
+  ../../../addons/ofxMSAFluid/src/MSAFluidDrawerBase.h \
+  ../../../addons/ofxGui/src/ofxGui.h \
+  ../../../addons/ofxGui/src/ofxToggle.h \
+  ../../../addons/ofxGui/src/ofxBaseGui.h \
+  ../../../addons/ofxGui/src/ofxSlider.h \
+  ../../../addons/ofxGui/src/ofxInputField.h \
+  ../../../addons/ofxGui/src/ofxGuiUtils.h \
+  ../../../addons/ofxGui/src/ofxSliderGroup.h \
+  ../../../addons/ofxGui/src/ofxGuiGroup.h \
+  ../../../addons/ofxGui/src/ofxButton.h \
+  ../../../addons/ofxGui/src/ofxLabel.h \
+  ../../../addons/ofxGui/src/ofxColorPicker.h \
+  ../../../addons/ofxGui/src/ofxPanel.h
 ../../../libs/openFrameworks/ofMain.h:
 ../../../libs/openFrameworks/utils/ofConstants.h:
 ../../../libs/tess2/include/tesselator.h:
@@ -914,3 +926,15 @@ src/ofApp.h:
 ../../../addons/ofxMSACore/src/MSACoreGL.h:
 ../../../addons/ofxMSAFluid/src/MSAFluidDrawerGl-OF.h:
 ../../../addons/ofxMSAFluid/src/MSAFluidDrawerBase.h:
+../../../addons/ofxGui/src/ofxGui.h:
+../../../addons/ofxGui/src/ofxToggle.h:
+../../../addons/ofxGui/src/ofxBaseGui.h:
+../../../addons/ofxGui/src/ofxSlider.h:
+../../../addons/ofxGui/src/ofxInputField.h:
+../../../addons/ofxGui/src/ofxGuiUtils.h:
+../../../addons/ofxGui/src/ofxSliderGroup.h:
+../../../addons/ofxGui/src/ofxGuiGroup.h:
+../../../addons/ofxGui/src/ofxButton.h:
+../../../addons/ofxGui/src/ofxLabel.h:
+../../../addons/ofxGui/src/ofxColorPicker.h:
+../../../addons/ofxGui/src/ofxPanel.h:

@@ -11,9 +11,30 @@ void ofApp::setup() {
     fluidDrawer.setup(&fluidSolver);
 
     // Initialize fluid parameters
-    fluidSolver.enableRGB(true).setFadeSpeed(0.002).setDeltaT(0.5)
-               .setVisc(0.00015).setColorDiffusion(0);
+    fluidSolver.enableRGB(true)
+               .setFadeSpeed(fluidFadeSpeed)
+               .setDeltaT(fluidDeltaT)
+               .setVisc(fluidViscosity)
+               .setColorDiffusion(colorDiffusion);
+
     fluidDrawer.setDrawMode(msa::fluid::kDrawColor);
+
+    // Setup GUI
+    gui.setup("Fluid Settings");
+    gui.add(velocityMult);
+    gui.add(fluidViscosity);
+    gui.add(fluidFadeSpeed);
+    gui.add(fluidDeltaT);
+    gui.add(colorDiffusion);
+    gui.add(forceMult);
+    gui.add(drawMode);
+    gui.add(showGui);
+
+    // Setup parameter listeners
+    fluidViscosity.addListener(this, &ofApp::onViscosityChanged);
+    fluidFadeSpeed.addListener(this, &ofApp::onFadeSpeedChanged);
+    fluidDeltaT.addListener(this, &ofApp::onDeltaTChanged);
+    colorDiffusion.addListener(this, &ofApp::onColorDiffusionChanged);
 }
 
 //--------------------------------------------------------------
@@ -24,8 +45,8 @@ void ofApp::update() {
     // Update touch points and add forces/colors to fluid
     for(auto& tp : touchPoints) {
         if(tp.second.isActive) {
-            ofVec2f vel = (tp.second.pos - tp.second.prevPos) * 10.0; // Scale velocity
-            addToFluid(tp.second.pos, vel, true, true);
+            ofVec2f vel = (tp.second.pos - tp.second.prevPos) * velocityMult;
+            addToFluid(tp.second.pos, vel, tp.second.color, true);
             tp.second.prevPos = tp.second.pos;
         }
     }
@@ -33,22 +54,25 @@ void ofApp::update() {
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-    ofClear(0, 0, 0, 255);
+    ofBackground(0); // Instead of ofClear
 
     // Draw fluid
+    fluidDrawer.setDrawMode((msa::fluid::DrawMode)((int)drawMode));
     fluidDrawer.draw(0, 0, ofGetWidth(), ofGetHeight());
 
     // Draw touch points
     ofSetColor(255);
     for(const auto& tp : touchPoints) {
         if(tp.second.isActive) {
+            ofSetColor(tp.second.color);
             ofDrawCircle(tp.second.pos.x, tp.second.pos.y, particleSize);
         }
     }
-}
 
-//--------------------------------------------------------------
-void ofApp::exit() {
+    // Draw GUI
+    if(showGui) {
+        gui.draw();
+    }
 }
 
 //--------------------------------------------------------------
@@ -66,10 +90,10 @@ void ofApp::mousePressed(int x, int y, int button) {
     TouchPoint tp;
     tp.pos = tp.prevPos = ofVec2f(x, y);
     tp.isActive = true;
+    tp.color = ofFloatColor::fromHsb(ofRandom(1.0f), 1.0f, 1.0f, 1.0f);
     touchPoints[button] = tp;
 
-    // Add initial splash to fluid
-    addToFluid(tp.pos, ofVec2f(0, 0), true, true);
+    addToFluid(tp.pos, ofVec2f(0, 0), tp.color, true);
 }
 
 //--------------------------------------------------------------
@@ -78,26 +102,27 @@ void ofApp::mouseReleased(int x, int y, int button) {
 }
 
 //--------------------------------------------------------------
-void ofApp::addToFluid(ofVec2f pos, ofVec2f vel, bool addColor, bool addForce) {
+void ofApp::keyPressed(int key) {
+    if(key == 'g' || key == 'G') {
+        showGui = !showGui;
+    }
+    if(key == 'd' || key == 'D') {
+        drawMode = (drawMode + 1) % 4;
+    }
+}
+
+//--------------------------------------------------------------
+void ofApp::addToFluid(ofVec2f pos, ofVec2f vel, const ofFloatColor& color, bool addForce) {
     // Convert window coordinates to fluid coordinates
     ofVec2f fluidPos = windowToFluid(pos);
 
-    // Calculate normalized coordinates
-    float normalizedX = fluidPos.x;
-    float normalizedY = fluidPos.y;
-
-    if(addColor) {
-        // Generate random color for each touch
-        ofColor col = ofColor::fromHsb(ofRandom(255), 255, 255);
-        ofFloatColor fluidColor(col.r/255.0f, col.g/255.0f, col.b/255.0f);
-
-        fluidSolver.addColorAtPos(msa::Vec2f(normalizedX, normalizedY), fluidColor);
-    }
+    // Add color
+    fluidSolver.addColorAtPos(msa::Vec2f(fluidPos.x, fluidPos.y), color);
 
     if(addForce) {
         // Scale velocity to fluid space
-        ofVec2f fluidVel = vel * fluidSolver.getInvWidth();
-        fluidSolver.addForceAtPos(msa::Vec2f(normalizedX, normalizedY),
+        ofVec2f fluidVel = vel * fluidSolver.getInvWidth() * forceMult;
+        fluidSolver.addForceAtPos(msa::Vec2f(fluidPos.x, fluidPos.y),
                                  msa::Vec2f(fluidVel.x, fluidVel.y));
     }
 }
