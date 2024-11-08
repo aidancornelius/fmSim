@@ -35,6 +35,14 @@ void ofApp::setup() {
     fluidFadeSpeed.addListener(this, &ofApp::onFadeSpeedChanged);
     fluidDeltaT.addListener(this, &ofApp::onDeltaTChanged);
     colorDiffusion.addListener(this, &ofApp::onColorDiffusionChanged);
+
+    // Enable multitouch
+    ofxMultitouch::EnableTouch();
+}
+
+//--------------------------------------------------------------
+void ofApp::exit() {
+    ofxMultitouch::DisableTouch();
 }
 
 //--------------------------------------------------------------
@@ -42,19 +50,34 @@ void ofApp::update() {
     // Update fluid simulation
     fluidSolver.update();
 
+    float currentTime = ofGetElapsedTimef();
+
     // Update touch points and add forces/colors to fluid
-    for(auto& tp : touchPoints) {
-        if(tp.second.isActive) {
-            ofVec2f vel = (tp.second.pos - tp.second.prevPos) * velocityMult;
-            addToFluid(tp.second.pos, vel, tp.second.color, true);
-            tp.second.prevPos = tp.second.pos;
+    for(auto& pair : touchPoints) {
+        TouchPoint& tp = pair.second;
+        if(tp.isActive) {
+            // Calculate touch duration
+            float touchDuration = currentTime - tp.startTime;
+
+            // Calculate velocity and scale it based on touch duration
+            ofVec2f vel = (tp.pos - tp.prevPos) * velocityMult;
+
+            // Create pulsing effect based on time
+            float pulseIntensity = 0.5f + 0.5f * sin(touchDuration * 5.0f);
+            ofFloatColor pulsingColor = tp.color;
+            pulsingColor.setBrightness(tp.color.getBrightness() * pulseIntensity);
+
+            // Add to fluid with time-based effects
+            addToFluid(tp.pos, vel, pulsingColor, true);
+
+            tp.prevPos = tp.pos;
         }
     }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-    ofBackground(0); // Instead of ofClear
+    ofBackground(0);
 
     // Draw fluid
     fluidDrawer.setDrawMode((msa::fluid::DrawMode)((int)drawMode));
@@ -76,29 +99,51 @@ void ofApp::draw() {
 }
 
 //--------------------------------------------------------------
-void ofApp::mouseDragged(int x, int y, int button) {
-    TouchPoint& tp = touchPoints[button];
-    tp.pos = ofVec2f(x, y);
-    if(!tp.isActive) {
-        tp.prevPos = tp.pos;
+void ofApp::touchDown(int x, int y, int id) {
+    handleTouch(x, y, id, true);
+}
+
+//--------------------------------------------------------------
+void ofApp::touchMoved(int x, int y, int id) {
+    handleTouch(x, y, id, false);
+}
+
+//--------------------------------------------------------------
+void ofApp::touchUp(int x, int y, int id) {
+    touchPoints[id].isActive = false;
+}
+
+//--------------------------------------------------------------
+void ofApp::handleTouch(int x, int y, int id, bool isNew) {
+    if(isNew) {
+        TouchPoint tp;
+        tp.pos = tp.prevPos = ofVec2f(x, y);
         tp.isActive = true;
+        tp.color = ofFloatColor::fromHsb(ofRandom(1.0f), 1.0f, 1.0f, 1.0f);
+        tp.startTime = ofGetElapsedTimef();
+        touchPoints[id] = tp;
+
+        addToFluid(tp.pos, ofVec2f(0, 0), tp.color, true);
+    } else if(touchPoints.find(id) != touchPoints.end()) {
+        TouchPoint& tp = touchPoints[id];
+        tp.prevPos = tp.pos;
+        tp.pos = ofVec2f(x, y);
     }
 }
 
 //--------------------------------------------------------------
-void ofApp::mousePressed(int x, int y, int button) {
-    TouchPoint tp;
-    tp.pos = tp.prevPos = ofVec2f(x, y);
-    tp.isActive = true;
-    tp.color = ofFloatColor::fromHsb(ofRandom(1.0f), 1.0f, 1.0f, 1.0f);
-    touchPoints[button] = tp;
+void ofApp::mouseDragged(int x, int y, int button) {
+    handleTouch(x, y, button, false);
+}
 
-    addToFluid(tp.pos, ofVec2f(0, 0), tp.color, true);
+//--------------------------------------------------------------
+void ofApp::mousePressed(int x, int y, int button) {
+    handleTouch(x, y, button, true);
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
-    touchPoints[button].isActive = false;
+    touchUp(x, y, button);
 }
 
 //--------------------------------------------------------------

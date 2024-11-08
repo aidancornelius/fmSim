@@ -1,3 +1,4 @@
 ofxMSACore
 ofxMSAFluid
 ofxGui
+ofxMultitouch

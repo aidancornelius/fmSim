@@ -4,12 +4,19 @@
 #include "MSAFluid.h"
 #include "MSACore.h"
 #include "ofxGui.h"
+#include "ofxMultitouch.h"
 
 class ofApp : public ofBaseApp {
 public:
     void setup();
     void update();
     void draw();
+    void exit();
+
+    // Multi-touch events
+    void touchDown(int x, int y, int id);
+    void touchMoved(int x, int y, int id);
+    void touchUp(int x, int y, int id);
 
     // Mouse events as fallback
     void mouseDragged(int x, int y, int button);
@@ -33,12 +40,14 @@ private:
         ofVec2f prevPos;
         bool isActive;
         ofFloatColor color;  // Persistent color per touch
+        float startTime;     // For time-based effects
     };
     std::map<int, TouchPoint> touchPoints;
 
     // Helper functions
     void addToFluid(ofVec2f pos, ofVec2f vel, const ofFloatColor& color, bool addForce);
     ofVec2f windowToFluid(ofVec2f windowPos);
+    void handleTouch(int x, int y, int id, bool isNew);
 
     // GUI
     ofxPanel gui;

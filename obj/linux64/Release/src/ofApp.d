@@ -467,7 +467,9 @@ obj/linux64/Release/src/ofApp.o: src/ofApp.cpp src/ofApp.h \
   ../../../addons/ofxGui/src/ofxButton.h \
   ../../../addons/ofxGui/src/ofxLabel.h \
   ../../../addons/ofxGui/src/ofxColorPicker.h \
-  ../../../addons/ofxGui/src/ofxPanel.h
+  ../../../addons/ofxGui/src/ofxPanel.h \
+  ../../../addons/ofxMultitouch/src/ofxMultitouch.h \
+  ../../../addons/ofxMultitouch/src/MultitouchReader.h
 src/ofApp.h:
 ../../../libs/openFrameworks/ofMain.h:
 ../../../libs/openFrameworks/utils/ofConstants.h:
@@ -938,3 +940,5 @@ src/ofApp.h:
 ../../../addons/ofxGui/src/ofxLabel.h:
 ../../../addons/ofxGui/src/ofxColorPicker.h:
 ../../../addons/ofxGui/src/ofxPanel.h:
+../../../addons/ofxMultitouch/src/ofxMultitouch.h:
+../../../addons/ofxMultitouch/src/MultitouchReader.h:
